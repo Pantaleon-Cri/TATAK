@@ -56,6 +56,7 @@ class _RegistrationListState extends State<RegistrationList> {
     List<String> departments = widget.selectedCollege != null
         ? collegeData[widget.selectedCollege!]!.keys.toList()
         : [];
+
     return DropdownButtonFormField<String>(
       value: widget.selectedDepartment,
       hint: Text('Select Department'),
@@ -68,6 +69,15 @@ class _RegistrationListState extends State<RegistrationList> {
       onChanged: (value) {
         widget.onDepartmentChanged(value);
       },
+      decoration: InputDecoration(
+        // No border for the dropdown
+
+        border: OutlineInputBorder(),
+        filled: true, // Enable filling
+        fillColor: Colors.white,
+
+        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+      ),
     );
   }
 
@@ -77,6 +87,7 @@ class _RegistrationListState extends State<RegistrationList> {
         widget.selectedCollege != null && widget.selectedDepartment != null
             ? collegeData[widget.selectedCollege!]![widget.selectedDepartment!]!
             : [];
+
     return DropdownButtonFormField<String>(
       value: widget.selectedClub,
       hint: Text('Select Club'),
@@ -89,6 +100,13 @@ class _RegistrationListState extends State<RegistrationList> {
       onChanged: (value) {
         widget.onClubChanged(value);
       },
+      decoration: InputDecoration(
+        // No border for the dropdown
+        border: OutlineInputBorder(),
+        filled: true, // Enable filling
+        fillColor: Colors.white,
+        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+      ),
     );
   }
 
@@ -99,6 +117,7 @@ class _RegistrationListState extends State<RegistrationList> {
         // Show department dropdown if club type is "Non-Departmental" and a college is selected
         if (widget.showDepartment && widget.selectedCollege != null)
           _buildDepartmentDropdown(),
+        SizedBox(height: 10),
 
         // Show club dropdown if club type is "Non-Departmental" and both department and college are selected
         if (widget.showClub && widget.selectedDepartment != null)

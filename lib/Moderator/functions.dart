@@ -6,53 +6,55 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class CreatorFunctions {
-  static void fetchCreatorInfo(
-    String clubId, // Use clubId instead of clubEmail
+  static void fetchUserInfo(
+    String userID, // Use userID instead of clubId
     Function(String, String, String, String, String, String, String) onUpdate,
     BuildContext context,
   ) {
     FirebaseFirestore.instance
-        .collection('Users')
-        .doc(clubId)
+        .collection('moderators') // Changed to 'users'
+        .doc(userID) // Changed to use userID
         .snapshots()
         .listen(
-      (creatorSnapshot) {
-        if (creatorSnapshot.exists && creatorSnapshot.data() != null) {
-          final creatorData = creatorSnapshot.data() as Map<String, dynamic>;
+      (userSnapshot) {
+        if (userSnapshot.exists && userSnapshot.data() != null) {
+          final userData = userSnapshot.data() as Map<String, dynamic>;
           onUpdate(
-            creatorData['creatorName'] ?? 'N/A',
-            creatorData['department'] ?? 'N/A',
-            creatorData['email'] ?? 'N/A',
-            creatorData['clubId'] ?? 'N/A',
-            creatorData['creatorAccountType'] ?? 'N/A',
-            creatorData['college'] ?? 'N/A',
-            creatorData['club'] ?? 'N/A',
+            userData['userName'] ?? 'N/A',
+            userData['department'] ?? 'N/A',
+            userData['email'] ?? 'N/A',
+            userData['userID'] ?? 'N/A',
+            userData['accountType'] ?? 'N/A',
+            userData['college'] ?? 'N/A',
+            userData['category'] ?? 'N/A',
           );
         } else {
-          onUpdate('N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A',
-              'N/A'); // Include clubId even if data is not found
+          // Fallback values in case document is not found
+          onUpdate('N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A');
         }
       },
       onError: (error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to fetch creator info: $error')),
+          SnackBar(content: Text('Failed to fetch user info: $error')),
         );
         onUpdate('Error', 'Error', 'Error', 'Error', 'Error', 'Error', 'Error');
       },
     );
   }
 
-  static void showProfileDialog(BuildContext context, String clubName,
-      String college, String department, String email, String clubId) {
+  static void showProfileDialog(BuildContext context, String userName,
+      String college, String department, String email, String userID) {
     showDialog(
       context: context,
       builder: (context) {
         return ProfileDialog(
-          clubName: clubName,
-          college: college,
-          department: department,
-          email: email,
-          clubId: clubId,
+          // Mapping to ProfileDialog constructor
+          department: department, // Mapping to ProfileDialog constructor
+          clubEmail: email, // Mapping to ProfileDialog constructor
+          userID: userID, // Mapping to ProfileDialog constructor
+          college: college, // Mapping to ProfileDialog constructor
+          category: '', // Empty or other category data as per your needs
+          subCategory: '', // Empty or other sub-category data as per your needs
         );
       },
     );
@@ -64,7 +66,7 @@ Future<void> pickImage(
   ImageSource source,
   Function(File) setProfileImage,
   Function(String) setProfileImageURL,
-  String clubId,
+  String userID, // Use userID instead of clubId
 ) async {
   final picker = ImagePicker();
   final pickedFile = await picker.pickImage(source: source);
@@ -73,7 +75,7 @@ Future<void> pickImage(
     setProfileImage(File(pickedFile.path));
 
     // Upload the image to Firebase Storage and save the reference in Firestore
-    await uploadImageToFirebase(pickedFile.path, setProfileImageURL, clubId);
+    await uploadImageToFirebase(pickedFile.path, setProfileImageURL, userID);
   }
 }
 
@@ -81,12 +83,12 @@ Future<void> pickImage(
 Future<void> uploadImageToFirebase(
   String filePath,
   Function(String) setProfileImageURL,
-  String clubId,
+  String userID, // Use userID instead of clubId
 ) async {
   try {
     // Create a unique file name for the image based on timestamp
     String fileName =
-        'profile_images/${clubId}_${DateTime.now().millisecondsSinceEpoch}.png';
+        'profile_images/${userID}_${DateTime.now().millisecondsSinceEpoch}.png';
 
     // Reference to Firebase Storage
     final storageRef = FirebaseStorage.instance.ref().child(fileName);
@@ -98,23 +100,23 @@ Future<void> uploadImageToFirebase(
     // Get the download URL of the uploaded image
     final downloadURL = await snapshot.ref.getDownloadURL();
 
-    // Save the download URL in Firestore under the creator's clubId
-    await saveImageURLToFirestore(downloadURL, clubId);
+    // Save the download URL in Firestore under the user's userID
+    await saveImageURLToFirestore(downloadURL, userID);
     setProfileImageURL(downloadURL); // Set the URL to display the image
   } catch (e) {
     print('Error uploading image: $e');
   }
 }
 
-// Save the image URL to Firestore under the creator's document
-Future<void> saveImageURLToFirestore(String downloadURL, String clubId) async {
+// Save the image URL to Firestore under the user's document
+Future<void> saveImageURLToFirestore(String downloadURL, String userID) async {
   try {
-    // Reference to the 'Users' collection in Firestore
-    final creatorDocRef =
-        FirebaseFirestore.instance.collection('Users').doc(clubId);
+    // Reference to the 'users' collection in Firestore
+    final userDocRef =
+        FirebaseFirestore.instance.collection('moderators').doc(userID);
 
     // Update the document with the image URL
-    await creatorDocRef.set(
+    await userDocRef.set(
       {
         'profileImageURL': downloadURL,
       },
@@ -127,19 +129,23 @@ Future<void> saveImageURLToFirestore(String downloadURL, String clubId) async {
 
 // Load the profile image from Firestore
 Future<void> loadProfileImage(
-  String clubId,
+  String userID, // Use userID instead of clubId
   Function(String?) setProfileImageURL,
 ) async {
   try {
     // Get the document from Firestore
-    final creatorDoc =
-        await FirebaseFirestore.instance.collection('Users').doc(clubId).get();
+    final userDoc = await FirebaseFirestore.instance
+        .collection('moderators')
+        .doc(userID)
+        .get();
 
-    if (creatorDoc.exists &&
-        creatorDoc.data() != null &&
-        creatorDoc.data()!.containsKey('profileImageURL')) {
+    if (userDoc.exists &&
+        userDoc.data() != null &&
+        userDoc.data()!.containsKey('profileImageURL')) {
       // Set the profile image URL if it exists in Firestore
-      setProfileImageURL(creatorDoc.data()!['profileImageURL']);
+      setProfileImageURL(userDoc.data()!['profileImageURL']);
+    } else {
+      setProfileImageURL(null); // If no image exists, reset the URL
     }
   } catch (e) {
     print('Error loading profile image: $e');

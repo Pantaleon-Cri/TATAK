@@ -10,22 +10,22 @@ class AdminPage extends StatefulWidget {
 class _AdminPageState extends State<AdminPage> {
   List<bool> _isButtonDisabled = [];
 
-  // Function to fetch users with 'pending' approval status
+  // Function to fetch users with 'pending' approval status from the 'moderators' collection
   Future<List<DocumentSnapshot>> _getPendingUsers() async {
     var querySnapshot = await FirebaseFirestore.instance
-        .collection('Users')
-        .where('approvalStatus', isEqualTo: 'pending')
+        .collection('moderators') // Managing only moderators
+        .where('status', isEqualTo: 'pending')
         .get();
     return querySnapshot.docs;
   }
 
-  // Function to approve a user's account
+  // Function to approve a moderator's account
   Future<void> _approveAccount(String userId, int index) async {
     try {
       await FirebaseFirestore.instance
-          .collection('Users')
+          .collection('moderators') // Managing only moderators
           .doc(userId)
-          .update({'approvalStatus': 'approved'});
+          .update({'status': 'approved'});
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Account approved successfully')),
@@ -41,13 +41,13 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
-  // Function to decline a user's account
+  // Function to decline a moderator's account
   Future<void> _declineAccount(String userId, int index) async {
     try {
       await FirebaseFirestore.instance
-          .collection('Users')
+          .collection('moderators') // Managing only moderators
           .doc(userId)
-          .update({'approvalStatus': 'declined'});
+          .update({'status': 'declined'});
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Account declined successfully')),
@@ -108,8 +108,9 @@ class _AdminPageState extends State<AdminPage> {
                 margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
                 elevation: 5,
                 child: ListTile(
-                  title: Text(user['creatorName'] ?? 'Unknown'),
-                  subtitle: Text(user['email'] ?? 'No email'),
+                  title: Text(user['userID'] ??
+                      'Unknown'), // Changed creatorName to userID
+                  subtitle: Text(user['clubEmail'] ?? 'No email'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

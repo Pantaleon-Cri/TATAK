@@ -90,8 +90,9 @@ class _StudentProfileDialogState extends State<StudentProfileDialog> {
                                 : _profileImageURL != null
                                     ? NetworkImage(_profileImageURL!)
                                     : const AssetImage(
-                                            'assets/placeholder_avatar.png')
+                                            'assets/generic_avatar.png')
                                         as ImageProvider,
+                            backgroundColor: Colors.grey[400],
                             child: _profileImage == null &&
                                     _profileImageURL == null
                                 ? const Icon(
@@ -104,35 +105,13 @@ class _StudentProfileDialogState extends State<StudentProfileDialog> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      Text(
-                        'Name: ${widget.firstName} ${widget.lastName}',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        'Email: ${widget.email}',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        'College: ${widget.college}',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        'Department: ${widget.department}',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        'Club: ${widget.club}',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        'School ID: ${widget.schoolId}',
-                        style: const TextStyle(fontSize: 16),
-                      ),
+                      _buildProfileDetail(
+                          'Name:', '${widget.firstName} ${widget.lastName}'),
+                      _buildProfileDetail('Email:', widget.email),
+                      _buildProfileDetail('College:', widget.college),
+                      _buildProfileDetail('Department:', widget.department),
+                      _buildProfileDetail('Club:', widget.club),
+                      _buildProfileDetail('School ID:', widget.schoolId),
                       const SizedBox(height: 20),
                       Divider(),
                       ListTile(
@@ -208,6 +187,36 @@ class _StudentProfileDialogState extends State<StudentProfileDialog> {
                 });
               }, widget.schoolId);
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to create profile detail with bold labels inside a rectangle
+  Widget _buildProfileDetail(String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey, width: 1),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 16),
+            ),
           ),
         ],
       ),

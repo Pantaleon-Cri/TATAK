@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io'; // For File
-import '../login_page.dart'; // Ensure this is the correct path for LoginPage
-import 'functions.dart'; // Import the functions file
+import 'dart:io';
+import '../login_page.dart';
+import 'functions.dart';
 import 'settings.dart';
 
 class ProfileDialog extends StatefulWidget {
-  final String clubName; // Club name of the creator
-  final String department; // Department of the creator
-  final String email;
-  final String clubId;
-  final String college; // Email of the creator
+  final String department;
+  final String clubEmail;
+  final String userID;
+  final String college;
+  final String category;
+  final String subCategory;
 
   const ProfileDialog({
     super.key,
-    required this.clubName,
     required this.department,
-    required this.email,
-    required this.clubId,
+    required this.clubEmail,
+    required this.userID,
     required this.college,
+    required this.category,
+    required this.subCategory,
   });
 
   @override
@@ -26,17 +28,17 @@ class ProfileDialog extends StatefulWidget {
 }
 
 class _ProfileDialogState extends State<ProfileDialog> {
-  File? _profileImage; // To hold the selected image
-  String? _profileImageURL; // To hold the image URL from Firebase
+  File? _profileImage;
+  String? _profileImageURL;
 
   @override
   void initState() {
     super.initState();
-    loadProfileImage(widget.clubId, (url) {
+    loadProfileImage(widget.userID, (url) {
       setState(() {
         _profileImageURL = url;
       });
-    }); // Load profile image on dialog open
+    });
   }
 
   @override
@@ -45,10 +47,10 @@ class _ProfileDialogState extends State<ProfileDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(5),
       ),
-      backgroundColor: Colors.grey[200], // Classic background color
+      backgroundColor: Colors.grey[200],
       child: FractionallySizedBox(
         widthFactor: 0.9,
-        heightFactor: 0.85, // Adjust dialog size relative to screen
+        heightFactor: 0.85,
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
@@ -66,7 +68,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          fontFamily: 'Roboto', // Modern font
+                          fontFamily: 'Roboto',
                           color: Colors.black,
                         ),
                       ),
@@ -85,7 +87,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                                 : _profileImageURL != null
                                     ? NetworkImage(_profileImageURL!)
                                     : const AssetImage(
-                                            'assets/placeholder_avatar.png')
+                                            'assets/generic_avatar.png')
                                         as ImageProvider,
                             backgroundColor: Colors.grey[400],
                           ),
@@ -93,19 +95,25 @@ class _ProfileDialogState extends State<ProfileDialog> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Club Info
-                      _modernText('Club Name: ${widget.clubName}'),
-                      _modernText('Club ID: ${widget.clubId}'),
-                      _modernText('College: ${widget.college}'),
-                      _modernText('Department: ${widget.department}'),
-                      _modernText('Email: ${widget.email}'),
+                      // Profile details with bold labels inside a rectangle
+                      _buildProfileDetail('User ID:', widget.userID,
+                          isBold: true),
+                      _buildProfileDetail('College:', widget.college,
+                          isBold: true),
+                      _buildProfileDetail('Department:', widget.department,
+                          isBold: true),
+                      _buildProfileDetail('Email:', widget.clubEmail,
+                          isBold: true),
+                      _buildProfileDetail('Category:', widget.category,
+                          isBold: true),
+                      _buildProfileDetail('Sub-Category:', widget.subCategory,
+                          isBold: true),
 
                       const SizedBox(height: 20),
 
                       // Buttons
                       SizedBox(
-                        width: double
-                            .infinity, // Ensures buttons stretch across the dialog
+                        width: double.infinity,
                         child: Column(
                           children: [
                             _modernButton(
@@ -117,7 +125,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => CreatorSettingsPage(
-                                      clubId: widget.clubId,
+                                      userID: widget.userID,
                                     ),
                                   ),
                                 );
@@ -167,16 +175,33 @@ class _ProfileDialogState extends State<ProfileDialog> {
     );
   }
 
-  Widget _modernText(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 14,
-          fontFamily: 'Roboto', // Modern font
-          color: Colors.black,
-        ),
+  // Function to build profile detail with bold label inside a rectangle
+  Widget _buildProfileDetail(String label, String value,
+      {bool isBold = false}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey, width: 1),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -189,25 +214,25 @@ class _ProfileDialogState extends State<ProfileDialog> {
       margin: const EdgeInsets.only(bottom: 10),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.grey[300], // Classic button color
+          backgroundColor: Colors.grey[300],
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
           textStyle: const TextStyle(
-            fontFamily: 'Roboto', // Modern font
+            fontFamily: 'Roboto',
             fontSize: 14,
             color: Colors.black,
           ),
         ),
         onPressed: onPressed,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.start, // Aligning to the left
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Icon(icon, color: Colors.black), // Icon aligned to the left
-            const SizedBox(width: 10), // Space between the icon and text
+            Icon(icon, color: Colors.black),
+            const SizedBox(width: 10),
             Text(
               label,
               style: const TextStyle(
-                color: Colors.black, // Button text color
+                color: Colors.black,
               ),
             ),
           ],
@@ -234,7 +259,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                 setState(() {
                   _profileImageURL = url;
                 });
-              }, widget.clubId);
+              }, widget.userID);
             },
           ),
           ListTile(
@@ -250,7 +275,7 @@ class _ProfileDialogState extends State<ProfileDialog> {
                 setState(() {
                   _profileImageURL = url;
                 });
-              }, widget.clubId);
+              }, widget.userID);
             },
           ),
         ],

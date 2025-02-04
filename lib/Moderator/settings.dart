@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class CreatorSettingsPage extends StatefulWidget {
-  final String clubId; // Club email to identify the creator
+  final String userID; // Club email to identify the creator
 
-  const CreatorSettingsPage({super.key, required this.clubId});
+  const CreatorSettingsPage({super.key, required this.userID});
 
   @override
   _CreatorSettingsPageState createState() => _CreatorSettingsPageState();
@@ -21,10 +21,6 @@ class _CreatorSettingsPageState extends State<CreatorSettingsPage> {
   late String _newPassword = '';
   final _newPasswordController = TextEditingController();
 
-  final _nameController = TextEditingController();
-  final _updateNameController = TextEditingController();
-  late String currentName;
-
   @override
   void initState() {
     super.initState();
@@ -34,18 +30,16 @@ class _CreatorSettingsPageState extends State<CreatorSettingsPage> {
   // Fetch creator's current information
   void _fetchCurrentUserDetails() async {
     try {
-      final creatorDoc = await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(widget.clubId)
+      final moderatorDoc = await FirebaseFirestore.instance
+          .collection('moderators')
+          .doc(widget.userID)
           .get();
 
-      if (creatorDoc.exists) {
+      if (moderatorDoc.exists) {
         setState(() {
-          currentEmail = creatorDoc['email'] ?? '';
-          currentName = creatorDoc['creatorName'] ?? '';
-          _password = creatorDoc.data()?['password'] ?? '';
+          currentEmail = moderatorDoc['clubEmail'] ?? '';
+          _password = moderatorDoc.data()?['password'] ?? '';
           _emailController.text = currentEmail;
-          _nameController.text = currentName;
         });
       }
     } catch (e) {
@@ -73,7 +67,7 @@ class _CreatorSettingsPageState extends State<CreatorSettingsPage> {
       // Update the email in the Users collection
       await FirebaseFirestore.instance
           .collection('Users')
-          .doc(widget.clubId)
+          .doc(widget.userID)
           .update({'email': newEmail});
 
       // Optionally, update the email in Firebase Authentication (if the user is logged in)
@@ -86,9 +80,8 @@ class _CreatorSettingsPageState extends State<CreatorSettingsPage> {
 
       // Update the email in all posts belonging to this clubId
       await FirebaseFirestore.instance
-          .collection('Posts')
-          .where('creatorId',
-              isEqualTo: widget.clubId) // Target posts by clubId
+          .collection('moderators')
+          .where('userID', isEqualTo: widget.userID) // Target posts by clubId
           .get()
           .then((querySnapshot) {
         for (var doc in querySnapshot.docs) {
@@ -107,52 +100,6 @@ class _CreatorSettingsPageState extends State<CreatorSettingsPage> {
     }
   }
 
-  Future<void> _updateClubName() async {
-    String newClubName = _updateNameController.text.trim();
-
-    // Validate the club name (you can add more specific validation if needed)
-    if (newClubName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid Club Name')),
-      );
-      return;
-    }
-
-    try {
-      // Step 1: Update the club name in the Users collection
-      await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(widget
-              .clubId) // Using the clubId to identify the correct document
-          .update({
-        'creatorName': newClubName, // Update the clubName field
-      });
-
-      // Step 2: Update the club name in all posts belonging to this clubId
-      await FirebaseFirestore.instance
-          .collection('Posts')
-          .where('creatorId',
-              isEqualTo: widget.clubId) // Target posts by clubId
-          .get()
-          .then((querySnapshot) {
-        for (var doc in querySnapshot.docs) {
-          doc.reference
-              .update({'creatorName': newClubName}); // Update clubName in posts
-        }
-      });
-
-      // Step 3: Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Club Name updated successfully')),
-      );
-    } catch (e) {
-      // Step 4: Handle any errors and show an error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating profile: $e')),
-      );
-    }
-  }
-
   Future<void> _updatePasswordInFirebase() async {
     if (_newPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -164,8 +111,8 @@ class _CreatorSettingsPageState extends State<CreatorSettingsPage> {
     try {
       // Update the password in Firebase
       await FirebaseFirestore.instance
-          .collection('Users')
-          .doc(widget.clubId)
+          .collection('moderators')
+          .doc(widget.userID)
           .update({'password': _newPassword});
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -190,32 +137,6 @@ class _CreatorSettingsPageState extends State<CreatorSettingsPage> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            // Editable TextFormField to update name
-            TextFormField(
-              controller: _nameController,
-              readOnly: true,
-              decoration: const InputDecoration(
-                labelText: "Club Name",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: _updateNameController,
-              decoration: const InputDecoration(
-                labelText: "New Club Name",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _updateClubName,
-              child: const Text('Save Club Name Changes'),
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-            ),
-            const SizedBox(height: 20),
-
             // Editable TextFormField to update email
             TextFormField(
               controller: _emailController,
@@ -273,7 +194,7 @@ class _CreatorSettingsPageState extends State<CreatorSettingsPage> {
             // New password field
             TextFormField(
               controller: _newPasswordController,
-              obscureText: false,
+              obscureText: !_isPasswordVisible,
               decoration: const InputDecoration(
                 labelText: "New Password",
                 border: OutlineInputBorder(),
@@ -292,7 +213,7 @@ class _CreatorSettingsPageState extends State<CreatorSettingsPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
               ),
-            )
+            ),
           ],
         ),
       ),

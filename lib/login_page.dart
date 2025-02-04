@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:online_clearance/Admin/admin_homepage.dart';
-import 'package:online_clearance/Moderator/creator_home_page.dart';
 import 'package:online_clearance/Student/home.dart';
+import 'package:online_clearance/Moderator/creator_home_page.dart'; // Moderator's home page
 import 'create_account_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -42,54 +42,23 @@ class _LoginPageState extends State<LoginPage> {
           return; // Exit the function as the admin login is handled
         }
 
-        DocumentSnapshot userDoc;
-
-        if (id.startsWith('c')) {
-          // Check in the Users collection for creators
-          userDoc = await FirebaseFirestore.instance
-              .collection('Users')
-              .doc(id)
-              .get();
-        } else {
-          // Check in the Users collection for students
-          userDoc = await FirebaseFirestore.instance
-              .collection('Users')
-              .doc(id)
-              .get();
-        }
+        // Check in the Users collection for students
+        DocumentSnapshot userDoc =
+            await FirebaseFirestore.instance.collection('Users').doc(id).get();
 
         if (userDoc.exists) {
           String storedPassword = userDoc['password'];
 
           if (storedPassword == password) {
-            if (id.startsWith('c')) {
-              // For creator accounts
-              String approvalStatus = userDoc['approvalStatus'];
-              if (approvalStatus == 'accepted') {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ModeratorHomePage(),
-                  ),
-                );
-              } else {
-                // Account is not accepted
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Account not accepted yet.')),
-                );
-              }
-            } else {
-              // For student accounts
-              String schoolId = userDoc['schoolId']; // Retrieve the schoolId
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => StudentHomePage(
-                    schoolId: schoolId, // Pass the actual schoolId
-                  ),
+            String schoolId = userDoc['schoolId']; // Retrieve the schoolId
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => StudentHomePage(
+                  schoolId: schoolId, // Pass the actual schoolId
                 ),
-              );
-            }
+              ),
+            );
             return; // Exit the function if login is successful
           } else {
             // Incorrect password
@@ -99,10 +68,50 @@ class _LoginPageState extends State<LoginPage> {
             return; // Exit if password is incorrect
           }
         } else {
-          // ID not found
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('ID not found.')),
-          );
+          // ID not found in Users collection, check for moderators
+          DocumentSnapshot moderatorDoc = await FirebaseFirestore.instance
+              .collection('moderators')
+              .doc(id)
+              .get();
+
+          if (moderatorDoc.exists) {
+            // Get the userID, password, and status for the moderator
+            String storedUserID = moderatorDoc['userID'];
+            String storedPassword = moderatorDoc['password'];
+            String status = moderatorDoc['status']; // Retrieve the status
+
+            // Check if the entered userID, password match and the status is approved
+            if (storedUserID == id && storedPassword == password) {
+              if (status == 'approved') {
+                String userID = moderatorDoc['userID'];
+                // Navigate to Moderator Home Page if status is approved
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ModeratorHomePage(
+                      userID: userID,
+                    ),
+                  ),
+                );
+              } else {
+                // Deny login if the status is pending
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Your account is pending approval.')),
+                );
+              }
+            } else {
+              // Incorrect password or userID
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Incorrect userID or password.')),
+              );
+            }
+          } else {
+            // ID not found in both Users and Moderators collections
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('ID not found.')),
+            );
+          }
         }
       } catch (e) {
         // Handle any errors that occur during login
@@ -189,7 +198,6 @@ class _LoginPageState extends State<LoginPage> {
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(5),
                                   ),
-                                  prefixIcon: Icon(Icons.person),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
@@ -210,7 +218,6 @@ class _LoginPageState extends State<LoginPage> {
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(5),
                                   ),
-                                  prefixIcon: Icon(Icons.lock),
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       _obscurePassword
@@ -261,7 +268,9 @@ class _LoginPageState extends State<LoginPage> {
                                 children: [
                                   Text(
                                     'Don\'t Have Account?',
-                                    style: TextStyle(color: Colors.white),
+                                    style: TextStyle(
+                                        color:
+                                            const Color.fromARGB(255, 0, 0, 0)),
                                   ),
                                   TextButton(
                                     onPressed: () {
@@ -276,7 +285,8 @@ class _LoginPageState extends State<LoginPage> {
                                     child: Text(
                                       'Sign Up',
                                       style: TextStyle(
-                                        color: Colors.white,
+                                        color:
+                                            const Color.fromARGB(255, 0, 0, 0),
                                         fontSize: screenWidth * 0.04,
                                       ),
                                     ),

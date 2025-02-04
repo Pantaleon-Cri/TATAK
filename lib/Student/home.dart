@@ -26,10 +26,10 @@ class _StudentHomePageState extends State<StudentHomePage> {
     'DEAN',
     'DSA',
     'PEC',
-    'Business',
+    'Business Office',
     'Clinic',
     'Guidance',
-    'Library'
+    'Library',
   ];
 
   Map<String, String> requestStatus = {};
@@ -37,16 +37,15 @@ class _StudentHomePageState extends State<StudentHomePage> {
   @override
   void initState() {
     super.initState();
+    if (widget.schoolId.isEmpty) {
+      print('Error: School ID is empty');
+      return;
+    }
     _loadStudentInfo();
   }
 
   Future<void> _loadStudentInfo() async {
     try {
-      if (widget.schoolId.isEmpty) {
-        print('Error: School ID is empty');
-        return; // Exit early if schoolId is empty
-      }
-
       final studentDoc = await FirebaseFirestore.instance
           .collection('Users')
           .doc(widget.schoolId)
@@ -63,7 +62,6 @@ class _StudentHomePageState extends State<StudentHomePage> {
           college = data?['college'] ?? 'Not Provided';
           club = data?['club'] ?? 'Not Provided';
         });
-        print('Data loaded: $data'); // Debug: check if data is loaded correctly
       } else {
         print('Student document not found!');
       }
@@ -78,97 +76,169 @@ class _StudentHomePageState extends State<StudentHomePage> {
     });
 
     try {
+      // Store the request in Firestore with the status 'Pending'
       await FirebaseFirestore.instance.collection('Requests').add({
         'studentId': widget.schoolId,
         'office': office,
+        'department': department,
+        'college': college,
         'status': 'Pending',
-        'timestamp': FieldValue.serverTimestamp(),
       });
+
+      // Fetch the updated request status from Firestore
+      final requestQuery = await FirebaseFirestore.instance
+          .collection('Requests')
+          .where('studentId', isEqualTo: widget.schoolId)
+          .where('office', isEqualTo: office)
+          .get();
+
+      if (requestQuery.docs.isNotEmpty) {
+        final updatedRequest = requestQuery.docs.first.data();
+        setState(() {
+          requestStatus[office] = updatedRequest['status'];
+        });
+      }
     } catch (e) {
       print('Error sending request: $e');
     }
+  }
+
+  Widget _buildOfficeCard(String officeKey, String displayName) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.black, width: 1.0),
+          borderRadius: BorderRadius.circular(4.0),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                displayName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              ElevatedButton(
+                onPressed: requestStatus[officeKey] == 'Pending'
+                    ? null
+                    : () => _requestToOffice(officeKey),
+                child: Text(
+                  requestStatus[officeKey] == 'Pending' ? 'Pending' : 'Request',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.green,
-        title: const Text(
-          'Request to Office',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fontFamily: 'Roboto',
-            letterSpacing: 1.2,
-          ),
+        backgroundColor: const Color.fromARGB(255, 6, 109, 61),
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          },
         ),
-        actions: [
-          IconButton(
-            icon: CircleAvatar(
-              radius: 20,
-              backgroundImage: profileImageURL != null
-                  ? NetworkImage(profileImageURL!)
-                  : const AssetImage('assets/placeholder_avatar.png')
-                      as ImageProvider,
-              child: profileImageURL == null
-                  ? const Icon(Icons.person, size: 24, color: Colors.white)
-                  : null,
-            ),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return StudentProfileDialog(
-                    firstName: firstName,
-                    lastName: lastName,
-                    email: email, // Pass email here
-                    department: department, // Pass department here
-                    schoolId: widget.schoolId,
-                    college: college, // Pass college here
-                    club: club, // Pass club here
-                  );
-                },
-              );
-            },
-            tooltip: 'Profile',
-          ),
-        ],
+        title: Image.asset(
+          'assets/tatak_logo.png',
+          height: 40,
+        ),
+        centerTitle: true,
       ),
-      body: ListView.builder(
-        itemCount: offices.length,
-        itemBuilder: (context, index) {
-          final office = offices[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    office,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: requestStatus[office] == 'Pending'
-                        ? null
-                        : () => _requestToOffice(office),
-                    child: Text(
-                      requestStatus[office] == 'Pending'
-                          ? 'Pending'
-                          : 'Request',
-                    ),
-                  ),
-                ],
+      drawer: Drawer(
+        child: Column(
+          children: [
+            UserAccountsDrawerHeader(
+              currentAccountPicture: CircleAvatar(
+                backgroundImage: profileImageURL != null
+                    ? NetworkImage(profileImageURL!)
+                    : const AssetImage('assets/generic_avatar.png')
+                        as ImageProvider,
+              ),
+              accountName: Text('$firstName $lastName'),
+              accountEmail: Text(email),
+              decoration: const BoxDecoration(
+                color: Color.fromARGB(255, 6, 109, 61),
               ),
             ),
-          );
-        },
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Profile'),
+              onTap: () {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return StudentProfileDialog(
+                      firstName: firstName,
+                      lastName: lastName,
+                      email: email,
+                      department: department,
+                      schoolId: widget.schoolId,
+                      college: college,
+                      club: club,
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                Text(
+                  'OFFICES',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'CLEARANCE STATUS',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: offices.length + 1, // +1 for Club
+              itemBuilder: (context, index) {
+                if (index < offices.length) {
+                  final office = offices[index];
+                  return _buildOfficeCard(office, office);
+                } else {
+                  return _buildOfficeCard('Club', 'Club - $department');
+                }
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

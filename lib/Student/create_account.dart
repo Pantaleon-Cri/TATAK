@@ -33,7 +33,7 @@ class _StudentCreateAccountState extends State<StudentCreateAccount> {
       try {
         final doc = await FirebaseFirestore.instance
             .collection('Users')
-            .doc(schoolId) // Document for account details
+            .doc(schoolId)
             .get();
 
         if (doc.exists) {
@@ -49,7 +49,7 @@ class _StudentCreateAccountState extends State<StudentCreateAccount> {
         } else {
           await FirebaseFirestore.instance
               .collection('Users')
-              .doc(schoolId) // Document for account details
+              .doc(schoolId)
               .set({
             'schoolId': schoolId,
             'firstName': firstName,
@@ -64,10 +64,8 @@ class _StudentCreateAccountState extends State<StudentCreateAccount> {
           ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Registration successful!')));
 
-          // Clear all fields
           _clearFields();
 
-          // Navigate back to LoginPage without stacking
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => LoginPage()),
             (Route<dynamic> route) => false,
@@ -98,154 +96,187 @@ class _StudentCreateAccountState extends State<StudentCreateAccount> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Student Registration')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _schoolIdController,
-                decoration: InputDecoration(
-                  labelText: 'School ID',
-                  border: OutlineInputBorder(), // Add border here
+      body: Container(
+        color: Color(0xFF167E55), // Set the background color here
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _schoolIdController,
+                  decoration: InputDecoration(
+                    labelText: 'School ID',
+                    border: OutlineInputBorder(),
+                    filled: true, // Enable filling
+                    fillColor: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your Student ID';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your Student ID';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: _selectedCollege,
-                hint: Text('Select College'),
-                items: ['CAS', 'CED', 'CEAC', 'CBA'].map((college) {
-                  return DropdownMenuItem(
-                    value: college,
-                    child: Text(college),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCollege = value;
-                    _selectedDepartment = null;
-                    _selectedClub = null; // Reset selected department and club
-                  });
-                },
-                decoration: InputDecoration(
-                  // No border for the dropdown
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+                SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: _selectedCollege,
+                  hint: Text('Select College'),
+                  items: ['CAS', 'CED', 'CEAC', 'CBA'].map((college) {
+                    return DropdownMenuItem(
+                      value: college,
+                      child: Text(college),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCollege = value;
+                      _selectedDepartment = null;
+                      _selectedClub = null;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    filled: true, // Enable filling
+                    fillColor: Colors.white,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+                  ),
                 ),
-              ),
-              RegistrationList(
-                selectedCollege: _selectedCollege,
-                selectedDepartment: _selectedDepartment,
-                selectedClub: _selectedClub,
-                onCollegeChanged: (college) {
-                  setState(() {
-                    _selectedCollege = college;
-                    _selectedDepartment =
-                        null; // Reset department on college change
-                    _selectedClub = null; // Reset club on college change
-                  });
-                },
-                onDepartmentChanged: (department) {
-                  setState(() {
-                    _selectedDepartment = department;
-                    _selectedClub = null; // Reset club on department change
-                  });
-                },
-                onClubChanged: (club) {
-                  setState(() {
-                    _selectedClub = club;
-                  });
-                },
-              ),
-              SizedBox(height: 10),
-              TextFormField(
-                controller: _firstNameController,
-                decoration: InputDecoration(
-                  labelText: 'First Name',
-                  border: OutlineInputBorder(), // Add border here
+                SizedBox(height: 10),
+                RegistrationList(
+                  selectedCollege: _selectedCollege,
+                  selectedDepartment: _selectedDepartment,
+                  selectedClub: _selectedClub,
+                  onCollegeChanged: (college) {
+                    setState(() {
+                      _selectedCollege = college;
+                      _selectedDepartment = null;
+                      _selectedClub = null;
+                    });
+                  },
+                  onDepartmentChanged: (department) {
+                    setState(() {
+                      _selectedDepartment = department;
+                      _selectedClub = null;
+                    });
+                  },
+                  onClubChanged: (club) {
+                    setState(() {
+                      _selectedClub = club;
+                    });
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your first name';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 10),
-              TextFormField(
-                controller: _lastNameController,
-                decoration: InputDecoration(
-                  labelText: 'Last Name',
-                  border: OutlineInputBorder(), // Add border here
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: _firstNameController,
+                  decoration: InputDecoration(
+                    labelText: 'First Name',
+                    border: OutlineInputBorder(),
+                    filled: true, // Enable filling
+                    fillColor: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your first name';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your last name';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 10),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(), // Add border here
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: _lastNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Last Name',
+                    border: OutlineInputBorder(),
+                    filled: true, // Enable filling
+                    fillColor: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your last name';
+                    }
+                    return null;
+                  },
                 ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 10),
-              TextFormField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(), // Add border here
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                    filled: true, // Enable filling
+                    fillColor: Colors.white,
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
                 ),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your password';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 10),
-              TextFormField(
-                controller: _confirmPasswordController,
-                decoration: InputDecoration(
-                  labelText: 'Confirm Password',
-                  border: OutlineInputBorder(), // Add border here
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                    filled: true, // Enable filling
+                    fillColor: Colors.white,
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    return null;
+                  },
                 ),
-                obscureText: true,
-                validator: (value) {
-                  if (value != _passwordController.text.trim()) {
-                    return 'Passwords do not match';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _register,
-                child: Text('Register'),
-              ),
-            ],
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    border: OutlineInputBorder(),
+                    filled: true, // Enable filling
+                    fillColor: Colors.white,
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value != _passwordController.text.trim()) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _register,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0B3F33), // Set button color
+                    minimumSize: Size(double.infinity,
+                        50), // Make the button longer and taller
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(8), // Optional: Rounded corners
+                    ),
+                  ),
+                  child: Text(
+                    'SIGN UP',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                    // Adjust font size if needed
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

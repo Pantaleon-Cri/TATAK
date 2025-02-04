@@ -61,6 +61,7 @@ flutter:
 
   assets:
     - assets/ndmu.jpg
-    - assets/placeholder_avatar.png
+    - assets/generic_avatar.png
     - assets/logo_ndmu.png
+    - assets/tatak_logo.png
 
