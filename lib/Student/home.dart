@@ -65,8 +65,32 @@ class _StudentHomePageState extends State<StudentHomePage> {
       } else {
         print('Student document not found!');
       }
+
+      // Fetch request statuses
+      await _loadRequestStatus();
     } catch (e) {
       print('Error loading student info: $e');
+    }
+  }
+
+  Future<void> _loadRequestStatus() async {
+    try {
+      final requestQuery = await FirebaseFirestore.instance
+          .collection('Requests')
+          .where('studentId', isEqualTo: widget.schoolId)
+          .get();
+
+      if (requestQuery.docs.isNotEmpty) {
+        Map<String, String> updatedStatus = {};
+        for (var doc in requestQuery.docs) {
+          updatedStatus[doc['office']] = doc['status'];
+        }
+        setState(() {
+          requestStatus = updatedStatus;
+        });
+      }
+    } catch (e) {
+      print('Error loading request status: $e');
     }
   }
 
@@ -104,6 +128,8 @@ class _StudentHomePageState extends State<StudentHomePage> {
   }
 
   Widget _buildOfficeCard(String officeKey, String displayName) {
+    String status = requestStatus[officeKey] ?? 'Request';
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Container(
@@ -124,11 +150,23 @@ class _StudentHomePageState extends State<StudentHomePage> {
                 ),
               ),
               ElevatedButton(
-                onPressed: requestStatus[officeKey] == 'Pending'
+                onPressed: (status == 'Pending' || status == 'Approved')
                     ? null
                     : () => _requestToOffice(officeKey),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: status == 'Approved'
+                      ? Colors.green
+                      : (status == 'Pending' ? Colors.orange : Colors.blue),
+                  disabledBackgroundColor: status == 'Approved'
+                      ? Colors.green
+                      : const Color.fromARGB(255, 107, 106,
+                          105), // Ensures correct color when disabled
+                ),
                 child: Text(
-                  requestStatus[officeKey] == 'Pending' ? 'Pending' : 'Request',
+                  status,
+                  style: const TextStyle(
+                      color: Colors
+                          .white), // Ensures text is readable on all colors
                 ),
               ),
             ],
