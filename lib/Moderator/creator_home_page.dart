@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:online_clearance/Moderator/history_page.dart';
 import 'package:online_clearance/Moderator/profile.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ModeratorHomePage extends StatefulWidget {
@@ -19,18 +18,14 @@ class _ModeratorHomePageState extends State<ModeratorHomePage> {
   String? subCategory;
   String? department;
   String? college;
-  Set<String> approvedRequests = {}; // Store approved requests
-  Set<String> excludedHistoryIds =
-      {}; // Store history IDs that should be excluded
 
   @override
   void initState() {
     super.initState();
     _userDetails = _fetchUserDetails(widget.userID);
-    _loadApprovedRequests(); // Load approved requests from SharedPreferences
-    _loadExcludedHistoryIds(); // Load excluded history IDs
   }
 
+  // Fetch user details from Firestore
   Future<Map<String, dynamic>> _fetchUserDetails(String userID) async {
     try {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
@@ -55,81 +50,22 @@ class _ModeratorHomePageState extends State<ModeratorHomePage> {
     }
   }
 
-  // Load approved request IDs from SharedPreferences
-  Future<void> _loadApprovedRequests() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> approvedRequestsList =
-        prefs.getStringList('approvedRequests') ?? [];
-    setState(() {
-      approvedRequests = Set<String>.from(approvedRequestsList);
-    });
-  }
-
-  // Save approved request IDs to SharedPreferences
-  Future<void> _saveApprovedRequest(String requestId) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> approvedRequestsList =
-        prefs.getStringList('approvedRequests') ?? [];
-    approvedRequestsList.add(requestId);
-    await prefs.setStringList('approvedRequests', approvedRequestsList);
-  }
-
-  // Load excluded history IDs from SharedPreferences
-  Future<void> _loadExcludedHistoryIds() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> excludedIds = prefs.getStringList('excludedHistoryIds') ?? [];
-    setState(() {
-      excludedHistoryIds = Set<String>.from(excludedIds);
-    });
-  }
-
-  // Save excluded history ID to SharedPreferences
-  Future<void> _saveExcludedHistoryId(String requestId) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> excludedIds = prefs.getStringList('excludedHistoryIds') ?? [];
-    excludedIds.add(requestId);
-    await prefs.setStringList('excludedHistoryIds', excludedIds);
-  }
-
-  // Update request status to 'Approved' and move to history
-  Future<void> _updateRequestStatus(
-      String requestId, Map<String, dynamic> requestData) async {
+  // Update request status to 'Approved'
+  Future<void> _updateRequestStatus(String requestId) async {
     try {
-      // Copy request data to History collection
-      await FirebaseFirestore.instance
-          .collection('History')
-          .doc(requestId)
-          .set({
-        ...requestData, // Copy all request data
-        'status': 'Approved', // Mark as approved
-        'approvedBy': widget.userID, // Store moderator who approved it
-        'timestamp': FieldValue.serverTimestamp(), // Save approval time
-      });
-
-      // Update the status in Requests collection without deleting
       await FirebaseFirestore.instance
           .collection('Requests')
           .doc(requestId)
-          .update({
-        'status': 'Approved',
-      });
+          .update({'status': 'Approved'});
 
-      // Save to SharedPreferences
-      await _saveApprovedRequest(requestId);
-
-      // Add the request ID to excluded history IDs
-      await _saveExcludedHistoryId(requestId);
-
-      setState(() {
-        approvedRequests.add(requestId);
-        excludedHistoryIds.add(requestId); // Update the excluded set
-      });
+      // Refresh UI after status update
+      setState(() {});
     } catch (e) {
       print('Error updating request: $e');
     }
   }
 
-  // Filter requests to exclude approved ones
+  // Filter requests to show only pending ones for the current office
   Stream<QuerySnapshot> _applyFilters() {
     var query = FirebaseFirestore.instance
         .collection('Requests')
@@ -240,11 +176,6 @@ class _ModeratorHomePageState extends State<ModeratorHomePage> {
               var request = requests[index].data() as Map<String, dynamic>;
               String requestId = requests[index].id;
 
-              // Skip the request if it's already in the excluded list
-              if (excludedHistoryIds.contains(requestId)) {
-                return SizedBox.shrink();
-              }
-
               return Card(
                 margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 child: ListTile(
@@ -252,7 +183,7 @@ class _ModeratorHomePageState extends State<ModeratorHomePage> {
                   subtitle: Text('Status: ${request['status']}'),
                   trailing: ElevatedButton(
                     onPressed: () async {
-                      await _updateRequestStatus(requestId, request);
+                      await _updateRequestStatus(requestId); // Update status
                     },
                     child: Text('Approve'),
                   ),

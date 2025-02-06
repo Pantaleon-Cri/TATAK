@@ -7,22 +7,14 @@ class HistoryPage extends StatelessWidget {
 
   HistoryPage({required this.userID});
 
-  // Function to update the status back to 'Pending'
+  // Function to update status back to 'Pending'
   Future<void> _setStatusToPending(String requestId) async {
     try {
-      // Query the Requests collection for the document with the same requestId
-      var requestSnapshot = await FirebaseFirestore.instance
+      await FirebaseFirestore.instance
           .collection('Requests')
           .doc(requestId)
-          .get();
-
-      if (requestSnapshot.exists) {
-        // Update the status to 'Pending' for the request
-        await requestSnapshot.reference.update({
-          'status': 'Pending',
-        });
-        print('Status updated to Pending');
-      }
+          .update({'status': 'Pending'});
+      print('Status updated to Pending');
     } catch (e) {
       print('Error updating status: $e');
     }
@@ -36,7 +28,7 @@ class HistoryPage extends StatelessWidget {
         title: Text('History'),
         centerTitle: true,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back), // Back button icon
+          icon: Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.pushReplacement(
               context,
@@ -49,45 +41,39 @@ class HistoryPage extends StatelessWidget {
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
-            .collection('History')
-            .where('approvedBy', isEqualTo: userID)
+            .collection('Requests')
+            .where('status',
+                isEqualTo: 'Approved') // Show only Approved requests
             .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return Center(child: CircularProgressIndicator());
           }
 
-          var historyRecords = snapshot.data!.docs;
+          var approvedRequests = snapshot.data!.docs;
 
-          if (historyRecords.isEmpty) {
+          if (approvedRequests.isEmpty) {
             return Center(child: Text('No approved requests yet.'));
           }
 
           return ListView.builder(
-            itemCount: historyRecords.length,
+            itemCount: approvedRequests.length,
             itemBuilder: (context, index) {
-              var history =
-                  historyRecords[index].data() as Map<String, dynamic>;
-              String requestId = historyRecords[index].id; // Get the requestId
+              var request =
+                  approvedRequests[index].data() as Map<String, dynamic>;
+              String requestId = approvedRequests[index].id;
 
               return Card(
                 margin: EdgeInsets.all(10),
                 child: ListTile(
-                  title: Text('Student ID: ${history['studentId']}'),
-                  subtitle: Text('Status: ${history['status']}'),
+                  title: Text('Student ID: ${request['studentId']}'),
+                  subtitle: Text('Status: ${request['status']}'),
                   trailing: ElevatedButton(
                     onPressed: () async {
-                      // Update the status of this request to 'Pending' in the Requests collection
+                      // Update the status back to Pending
                       await _setStatusToPending(requestId);
 
-                      // Navigate back to the ModeratorHomePage
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ModeratorHomePage(userID: userID),
-                        ),
-                      );
+                      // The request should now reappear in the Moderator page dynamically (Firestore handles this)
                     },
                     child: Text('Back to Pending'),
                   ),
