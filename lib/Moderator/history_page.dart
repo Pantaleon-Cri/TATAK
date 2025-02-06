@@ -44,6 +44,7 @@ class HistoryPage extends StatelessWidget {
             .collection('Requests')
             .where('status',
                 isEqualTo: 'Approved') // Show only Approved requests
+            .where('moderatorId', isEqualTo: userID) // Filter by moderatorId
             .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
@@ -64,18 +65,31 @@ class HistoryPage extends StatelessWidget {
               String requestId = approvedRequests[index].id;
 
               return Card(
-                margin: EdgeInsets.all(10),
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                color: Colors.white.withOpacity(0.1), // Adjust the card opacity
                 child: ListTile(
                   title: Text('Student ID: ${request['studentId']}'),
-                  subtitle: Text('Status: ${request['status']}'),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          'Name: ${request['firstName']} ${request['lastName']}'),
+                      Text('Status: ${request['status']}'),
+                      SizedBox(
+                          height:
+                              4), // Add some space between the status and names
+                    ],
+                  ),
                   trailing: ElevatedButton(
                     onPressed: () async {
-                      // Update the status back to Pending
-                      await _setStatusToPending(requestId);
-
-                      // The request should now reappear in the Moderator page dynamically (Firestore handles this)
+                      await _setStatusToPending(requestId); // Update status
                     },
-                    child: Text('Back to Pending'),
+                    child: Text('Approve'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor:
+                          Colors.white, // Change the button color to blue
+                    ),
                   ),
                 ),
               );

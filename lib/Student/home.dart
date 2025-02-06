@@ -107,6 +107,8 @@ class _StudentHomePageState extends State<StudentHomePage> {
         'department': department,
         'college': college,
         'status': 'Pending',
+        'firstName': firstName,
+        'lastName': lastName,
       });
 
       // Fetch the updated request status from Firestore
@@ -132,11 +134,9 @@ class _StudentHomePageState extends State<StudentHomePage> {
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      color: Colors.white.withOpacity(0.1),
       child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.black, width: 1.0),
-          borderRadius: BorderRadius.circular(4.0),
-        ),
+        decoration: BoxDecoration(),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
@@ -179,105 +179,93 @@ class _StudentHomePageState extends State<StudentHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 6, 109, 61),
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          },
+        appBar: AppBar(
+          backgroundColor: const Color.fromARGB(255, 6, 109, 61),
+          leading: Builder(
+            builder: (context) {
+              return IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+              );
+            },
+          ),
+          title: Text('Student Dashboard'), // Replaced the logo with text
+          centerTitle: true,
         ),
-        title: Image.asset(
-          'assets/tatak_logo.png',
-          height: 40,
+        drawer: Drawer(
+          child: Column(
+            children: [
+              UserAccountsDrawerHeader(
+                currentAccountPicture: CircleAvatar(
+                  backgroundImage: profileImageURL != null
+                      ? NetworkImage(profileImageURL!)
+                      : const AssetImage('assets/generic_avatar.png')
+                          as ImageProvider,
+                ),
+                accountName: Text('$firstName $lastName'),
+                accountEmail: Text(email),
+                decoration: const BoxDecoration(
+                  color: Color.fromARGB(255, 6, 109, 61),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.person),
+                title: const Text('Profile'),
+                onTap: () {
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return StudentProfileDialog(
+                        firstName: firstName,
+                        lastName: lastName,
+                        email: email,
+                        department: department,
+                        schoolId: widget.schoolId,
+                        college: college,
+                        club: club,
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
         ),
-        centerTitle: true,
-      ),
-      drawer: Drawer(
-        child: Column(
-          children: [
-            UserAccountsDrawerHeader(
-              currentAccountPicture: CircleAvatar(
-                backgroundImage: profileImageURL != null
-                    ? NetworkImage(profileImageURL!)
-                    : const AssetImage('assets/generic_avatar.png')
-                        as ImageProvider,
-              ),
-              accountName: Text('$firstName $lastName'),
-              accountEmail: Text(email),
-              decoration: const BoxDecoration(
-                color: Color.fromARGB(255, 6, 109, 61),
-              ),
+        body: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/tatak_logo.png'), // Background logo
+              fit: BoxFit.contain,
             ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Profile'),
-              onTap: () {
-                Navigator.pop(context);
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return StudentProfileDialog(
-                      firstName: firstName,
-                      lastName: lastName,
-                      email: email,
-                      department: department,
-                      schoolId: widget.schoolId,
-                      college: college,
-                      club: club,
-                    );
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(1.0),
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width *
+                      0.9, // You can adjust the width of the search bar
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: offices.length + 1, // +1 for Club
+                  itemBuilder: (context, index) {
+                    if (index < offices.length) {
+                      final office = offices[index];
+                      return _buildOfficeCard(office, office);
+                    } else {
+                      return _buildOfficeCard('Club', 'Club - $department');
+                    }
                   },
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
-                  'OFFICES',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
                 ),
-                Text(
-                  'CLEARANCE STATUS',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: offices.length + 1, // +1 for Club
-              itemBuilder: (context, index) {
-                if (index < offices.length) {
-                  final office = offices[index];
-                  return _buildOfficeCard(office, office);
-                } else {
-                  return _buildOfficeCard('Club', 'Club - $department');
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-    );
+        ));
   }
 }

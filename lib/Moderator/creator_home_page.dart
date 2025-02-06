@@ -18,6 +18,7 @@ class _ModeratorHomePageState extends State<ModeratorHomePage> {
   String? subCategory;
   String? department;
   String? college;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -50,13 +51,16 @@ class _ModeratorHomePageState extends State<ModeratorHomePage> {
     }
   }
 
-  // Update request status to 'Approved'
-  Future<void> _updateRequestStatus(String requestId) async {
+  // Update request status to 'Approved' and store moderatorId
+  Future<void> _approveRequest(String requestId) async {
     try {
       await FirebaseFirestore.instance
           .collection('Requests')
           .doc(requestId)
-          .update({'status': 'Approved'});
+          .update({
+        'status': 'Approved',
+        'moderatorId': widget.userID, // Store the moderator's userID here
+      });
 
       // Refresh UI after status update
       setState(() {});
@@ -70,7 +74,13 @@ class _ModeratorHomePageState extends State<ModeratorHomePage> {
     var query = FirebaseFirestore.instance
         .collection('Requests')
         .where('office', isEqualTo: category)
-        .where('status', isEqualTo: 'Pending'); // Only show pending requests
+        .where('status', isEqualTo: 'Pending');
+
+    if (_searchQuery.isNotEmpty) {
+      query = query.where('studentId',
+          isEqualTo: _searchQuery); // Filter by studentId
+    }
+    // Only show pending requests
 
     if (category == 'SSG' ||
         category == 'DSA' ||
@@ -92,14 +102,30 @@ class _ModeratorHomePageState extends State<ModeratorHomePage> {
     return query.snapshots();
   }
 
+  // Update search query when the user types
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xFF167E55),
-        title: Text('Moderator Home'),
+        backgroundColor: const Color.fromARGB(255, 6, 109, 61),
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          },
+        ),
+        title: Text('Moderator Dashboard'), // Replaced the logo with text
         centerTitle: true,
-        actions: [],
       ),
       drawer: FutureBuilder<Map<String, dynamic>>(
         future: _userDetails,
@@ -157,41 +183,92 @@ class _ModeratorHomePageState extends State<ModeratorHomePage> {
           );
         },
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _applyFilters(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          var requests = snapshot.data!.docs;
-          if (requests.isEmpty) {
-            return Center(
-                child: Text('No requests available for your office.'));
-          }
-
-          return ListView.builder(
-            itemCount: requests.length,
-            itemBuilder: (context, index) {
-              var request = requests[index].data() as Map<String, dynamic>;
-              String requestId = requests[index].id;
-
-              return Card(
-                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                child: ListTile(
-                  title: Text('Student ID: ${request['studentId']}'),
-                  subtitle: Text('Status: ${request['status']}'),
-                  trailing: ElevatedButton(
-                    onPressed: () async {
-                      await _updateRequestStatus(requestId); // Update status
-                    },
-                    child: Text('Approve'),
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/tatak_logo.png'), // Background logo
+            fit: BoxFit.contain,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width *
+                    0.9, // You can adjust the width of the search bar
+                child: TextField(
+                  onChanged: _onSearchChanged,
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    hintText: 'Search Student ID',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4.0),
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
                   ),
                 ),
-              );
-            },
-          );
-        },
+              ),
+            ),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: _applyFilters(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  var requests = snapshot.data!.docs;
+                  if (requests.isEmpty) {
+                    return Center(
+                        child: Text('No requests available for your office.'));
+                  }
+
+                  return ListView.builder(
+                    itemCount: requests.length,
+                    itemBuilder: (context, index) {
+                      var request =
+                          requests[index].data() as Map<String, dynamic>;
+                      String requestId = requests[index].id;
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 16),
+                        color: Colors.white
+                            .withOpacity(0.1), // Adjust the card opacity
+                        child: ListTile(
+                          title: Text('Student ID: ${request['studentId']}'),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  'Name: ${request['firstName']} ${request['lastName']}'),
+                              Text('Status: ${request['status']}'),
+                              SizedBox(
+                                  height:
+                                      4), // Add some space between the status and names
+                            ],
+                          ),
+                          trailing: ElevatedButton(
+                            onPressed: () async {
+                              await _approveRequest(requestId); // Update status
+                            },
+                            child: Text('Approve'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors
+                                  .white, // Change the button color to blue
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

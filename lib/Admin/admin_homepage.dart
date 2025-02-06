@@ -76,14 +76,19 @@ class _AdminPageState extends State<AdminPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Admin Dashboard'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: _logout, // Logout action
-            tooltip: 'Logout',
-          ),
-        ],
+        backgroundColor: const Color.fromARGB(255, 6, 109, 61),
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          },
+        ),
+        title: Text('Admin Dashboard'), // Replaced the logo with text
+        centerTitle: true,
       ),
       body: FutureBuilder<List<DocumentSnapshot>>(
         future: _getPendingUsers(),

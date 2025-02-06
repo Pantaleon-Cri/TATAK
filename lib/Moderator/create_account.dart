@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:online_clearance/login_page.dart';
 
 class CreatorCreateAccount extends StatefulWidget {
   @override
@@ -24,24 +25,54 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
   Future<void> _saveToFirestore() async {
     if (_formKey.currentState!.validate()) {
       try {
-        await FirebaseFirestore.instance
+        // Check if the user ID already exists in Firestore
+        var doc = await FirebaseFirestore.instance
             .collection('moderators')
             .doc(_userIDController.text)
-            .set({
-          'clubName': _clubnameController.text,
-          'clubEmail': _clubEmailController.text,
-          'password': _passwordController.text,
-          'userID': _userIDController.text,
-          'college': _selectedCollege,
-          'department': _selectedDepartment,
-          'category': _selectedCategory,
-          'subCategory': _selectedSubCategory,
-          'status': 'pending', // Set status to 'pending'
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Account successfully registered!')),
-        );
-        _clearFields();
+            .get();
+
+        if (doc.exists) {
+          // Show a SnackBar if the user ID already exists
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'User ID already exists.',
+                style: TextStyle(color: Colors.red),
+              ),
+              backgroundColor: Colors.white,
+            ),
+          );
+        } else {
+          // Save the new moderator data if the user ID doesn't exist
+          await FirebaseFirestore.instance
+              .collection('moderators')
+              .doc(_userIDController.text)
+              .set({
+            'clubName': _clubnameController.text,
+            'clubEmail': _clubEmailController.text,
+            'password': _passwordController.text,
+            'userID': _userIDController.text,
+            'college': _selectedCollege,
+            'department': _selectedDepartment,
+            'category': _selectedCategory,
+            'subCategory': _selectedSubCategory,
+            'status': 'pending', // Set status to 'pending'
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    'Account successfully registered! Wait for the admin approval to continue login')),
+          );
+
+          _clearFields();
+
+          // Navigate to login page after registration
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => LoginPage()),
+            (Route<dynamic> route) => false,
+          );
+        }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error saving data: $e')),
@@ -314,7 +345,7 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                 TextFormField(
                   controller: _clubEmailController,
                   decoration: InputDecoration(
-                    labelText: ' Email',
+                    labelText: 'Email',
                     border: OutlineInputBorder(),
                     filled: true,
                     fillColor: Colors.white,
@@ -322,6 +353,14 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter an email';
+                    }
+                    // Check if the email is in the correct format using a regex
+                    String emailPattern =
+                        r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"; // Email regex pattern
+                    RegExp regExp = RegExp(emailPattern);
+
+                    if (!regExp.hasMatch(value)) {
+                      return 'Please enter a valid email address';
                     }
                     return null;
                   },
