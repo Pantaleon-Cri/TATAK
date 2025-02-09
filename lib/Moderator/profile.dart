@@ -28,16 +28,11 @@ class ProfileDialog extends StatefulWidget {
 }
 
 class _ProfileDialogState extends State<ProfileDialog> {
-  File? _profileImage;
-  String? _profileImageURL;
-
   @override
   void initState() {
     super.initState();
     loadProfileImage(widget.userID, (url) {
-      setState(() {
-        _profileImageURL = url;
-      });
+      setState(() {});
     });
   }
 
@@ -75,38 +70,21 @@ class _ProfileDialogState extends State<ProfileDialog> {
                       const SizedBox(height: 20),
 
                       // Profile Image (Avatar)
-                      Center(
-                        child: GestureDetector(
-                          onTap: () {
-                            _showImageSourceSelection(context);
-                          },
-                          child: CircleAvatar(
-                            radius: constraints.maxWidth * 0.15,
-                            backgroundImage: _profileImage != null
-                                ? FileImage(_profileImage!)
-                                : _profileImageURL != null
-                                    ? NetworkImage(_profileImageURL!)
-                                    : const AssetImage(
-                                            'assets/generic_avatar.png')
-                                        as ImageProvider,
-                            backgroundColor: Colors.grey[400],
-                          ),
-                        ),
-                      ),
+
                       const SizedBox(height: 20),
 
                       // Profile details with bold labels inside a rectangle
                       _buildProfileDetail('User ID:', widget.userID,
                           isBold: true),
+                      _buildProfileDetail('Office:', widget.category,
+                          isBold: true),
+                      _buildProfileDetail('Email:', widget.clubEmail,
+                          isBold: true),
                       _buildProfileDetail('College:', widget.college,
                           isBold: true),
                       _buildProfileDetail('Department:', widget.department,
                           isBold: true),
-                      _buildProfileDetail('Email:', widget.clubEmail,
-                          isBold: true),
-                      _buildProfileDetail('Category:', widget.category,
-                          isBold: true),
-                      _buildProfileDetail('Sub-Category:', widget.subCategory,
+                      _buildProfileDetail('Club:', widget.subCategory,
                           isBold: true),
 
                       const SizedBox(height: 20),
@@ -128,24 +106,6 @@ class _ProfileDialogState extends State<ProfileDialog> {
                                       userID: widget.userID,
                                     ),
                                   ),
-                                );
-                              },
-                            ),
-                            _modernButton(
-                              context,
-                              label: 'About Us',
-                              icon: Icons.info,
-                              onPressed: () {
-                                Navigator.pop(context);
-                                showAboutDialog(
-                                  context: context,
-                                  applicationName: 'Your App Name',
-                                  applicationVersion: '1.0.0',
-                                  applicationIcon: const Icon(Icons.info),
-                                  children: const [
-                                    Text(
-                                        'This is the About Us section of the app.'),
-                                  ],
                                 );
                               },
                             ),
@@ -237,48 +197,6 @@ class _ProfileDialogState extends State<ProfileDialog> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showImageSourceSelection(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Wrap(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.photo_library),
-            title: const Text('Gallery'),
-            onTap: () {
-              Navigator.pop(context);
-              pickImage(ImageSource.gallery, (image) {
-                setState(() {
-                  _profileImage = image;
-                });
-              }, (url) {
-                setState(() {
-                  _profileImageURL = url;
-                });
-              }, widget.userID);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.camera_alt),
-            title: const Text('Camera'),
-            onTap: () {
-              Navigator.pop(context);
-              pickImage(ImageSource.camera, (image) {
-                setState(() {
-                  _profileImage = image;
-                });
-              }, (url) {
-                setState(() {
-                  _profileImageURL = url;
-                });
-              }, widget.userID);
-            },
-          ),
-        ],
       ),
     );
   }

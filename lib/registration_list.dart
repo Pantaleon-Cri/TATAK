@@ -42,8 +42,8 @@ class _RegistrationListState extends State<RegistrationList> {
       'SEAS': ['PICE', 'ARCHI', 'EE', 'CompENG', 'ECE'],
     },
     'CBA': {
-      'Department of Business 1': ['Club E1', 'Club E2'],
-      'Department of Administration 1': ['Club F1', 'Club F2'],
+      'Business 1': ['Club E1', 'Club E2'],
+      'Administration 1': ['Club F1', 'Club F2'],
     },
     'CAS': {
       'Natural Science': ['science', 'math'],
@@ -117,7 +117,7 @@ class _RegistrationListState extends State<RegistrationList> {
         // Show department dropdown if club type is "Non-Departmental" and a college is selected
         if (widget.showDepartment && widget.selectedCollege != null)
           _buildDepartmentDropdown(),
-        SizedBox(height: 10),
+        SizedBox(height: 5),
 
         // Show club dropdown if club type is "Non-Departmental" and both department and college are selected
         if (widget.showClub && widget.selectedDepartment != null)

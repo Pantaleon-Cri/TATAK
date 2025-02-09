@@ -21,9 +21,14 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
 
   String? _selectedCategory;
   String? _selectedSubCategory;
+  bool _isLoading = false;
 
   Future<void> _saveToFirestore() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true; // Show loading state
+      });
+
       try {
         // Check if the user ID already exists in Firestore
         var doc = await FirebaseFirestore.instance
@@ -77,6 +82,10 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error saving data: $e')),
         );
+      } finally {
+        setState(() {
+          _isLoading = false; // Hide loading state
+        });
       }
     }
   }
@@ -118,16 +127,19 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                   value: _selectedCategory,
                   hint: Text('Select Category'),
                   items: [
-                    'SSG',
-                    'COUNCIL',
-                    'DEAN',
-                    'DSA',
-                    'PEC',
                     'Business Office',
-                    'Clinic',
-                    'Guidance',
                     'Library',
+                    'PEC',
+                    'Clinic',
+                    'GHAD',
+                    'Guidance',
+                    'Club Department',
                     'Club',
+                    'College Council',
+                    'College Dean',
+                    'SSG',
+                    'DSA/NSTP',
+                    'Records Section'
                   ].map((category) {
                     return DropdownMenuItem(
                         value: category, child: Text(category));
@@ -141,12 +153,11 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                     });
                   },
                   decoration: InputDecoration(
-                    border: OutlineInputBorder(),
                     filled: true,
                     fillColor: Colors.white,
                   ),
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 5),
 
                 // Additional Dropdowns for College/Department/Subcategory...
                 if (_selectedCategory == 'COUNCIL' ||
@@ -169,12 +180,130 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                       });
                     },
                     decoration: InputDecoration(
-                      border: OutlineInputBorder(),
                       filled: true,
                       fillColor: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 10),
+                  SizedBox(height: 5),
+                ],
+                if (_selectedCategory == 'Club Department') ...[
+                  DropdownButtonFormField<String>(
+                    value: _selectedCollege,
+                    hint: Text('Select College'),
+                    items: ['CAS', 'CED', 'CEAC', 'CBA'].map((college) {
+                      return DropdownMenuItem(
+                        value: college,
+                        child: Text(college),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCollege = value;
+                        _selectedDepartment = null;
+                        _selectedSubCategory = null;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                  ),
+
+                  if (_selectedCollege == 'CED') ...[
+                    SizedBox(height: 5),
+                    DropdownButtonFormField<String>(
+                      value: _selectedDepartment,
+                      hint: Text('Select Department'),
+                      items: ['Natural Science', 'RE'].map((department) {
+                        return DropdownMenuItem(
+                          value: department,
+                          child: Text(department),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedDepartment = value;
+                          _selectedSubCategory = null;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                  if (_selectedCollege == 'CBA') ...[
+                    SizedBox(height: 5),
+                    DropdownButtonFormField<String>(
+                      value: _selectedDepartment,
+                      hint: Text('Select Department'),
+                      items:
+                          ['Business 1', 'Administration 1'].map((department) {
+                        return DropdownMenuItem(
+                          value: department,
+                          child: Text(department),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedDepartment = value;
+                          _selectedSubCategory = null;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                  if (_selectedCollege == 'CEAC') ...[
+                    SizedBox(height: 5),
+                    DropdownButtonFormField<String>(
+                      value: _selectedDepartment,
+                      hint: Text('Select Department'),
+                      items: ['CSD', 'SEAS'].map((department) {
+                        return DropdownMenuItem(
+                          value: department,
+                          child: Text(department),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedDepartment = value;
+                          _selectedSubCategory = null;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                  if (_selectedCollege == 'CAS') ...[
+                    SizedBox(height: 5),
+                    DropdownButtonFormField<String>(
+                      value: _selectedDepartment,
+                      hint: Text('Select Department'),
+                      items: ['Natural Science', 'Medical Courses']
+                          .map((department) {
+                        return DropdownMenuItem(
+                          value: department,
+                          child: Text(department),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedDepartment = value;
+                          _selectedSubCategory = null;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                  // Subcategory Dropdown based on Department selection
                 ],
                 if (_selectedCategory == 'Club') ...[
                   DropdownButtonFormField<String>(
@@ -194,14 +323,13 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                       });
                     },
                     decoration: InputDecoration(
-                      border: OutlineInputBorder(),
                       filled: true,
                       fillColor: Colors.white,
                     ),
                   ),
 
                   if (_selectedCollege == 'CED') ...[
-                    SizedBox(height: 10),
+                    SizedBox(height: 5),
                     DropdownButtonFormField<String>(
                       value: _selectedDepartment,
                       hint: Text('Select Department'),
@@ -218,21 +346,18 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                         });
                       },
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
                       ),
                     ),
                   ],
                   if (_selectedCollege == 'CBA') ...[
-                    SizedBox(height: 10),
+                    SizedBox(height: 5),
                     DropdownButtonFormField<String>(
                       value: _selectedDepartment,
                       hint: Text('Select Department'),
-                      items: [
-                        'Department of Business 1',
-                        'Department of Administration 1'
-                      ].map((department) {
+                      items:
+                          ['Business 1', 'Administration 1'].map((department) {
                         return DropdownMenuItem(
                           value: department,
                           child: Text(department),
@@ -245,14 +370,13 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                         });
                       },
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
                       ),
                     ),
                   ],
                   if (_selectedCollege == 'CEAC') ...[
-                    SizedBox(height: 10),
+                    SizedBox(height: 5),
                     DropdownButtonFormField<String>(
                       value: _selectedDepartment,
                       hint: Text('Select Department'),
@@ -269,14 +393,13 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                         });
                       },
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
                       ),
                     ),
                   ],
                   if (_selectedCollege == 'CAS') ...[
-                    SizedBox(height: 10),
+                    SizedBox(height: 5),
                     DropdownButtonFormField<String>(
                       value: _selectedDepartment,
                       hint: Text('Select Department'),
@@ -294,7 +417,6 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                         });
                       },
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
                       ),
@@ -302,7 +424,7 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                   ],
                   // Subcategory Dropdown based on Department selection
                   if (_selectedDepartment != null) ...[
-                    SizedBox(height: 10),
+                    SizedBox(height: 5),
                     DropdownButtonFormField<String>(
                       value: _selectedSubCategory,
                       hint: Text('Select Subcategory'),
@@ -318,19 +440,17 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                         });
                       },
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(),
                         filled: true,
                         fillColor: Colors.white,
                       ),
                     ),
                   ],
                 ],
-                SizedBox(height: 10),
+                SizedBox(height: 5),
                 TextFormField(
                   controller: _userIDController,
                   decoration: InputDecoration(
                     labelText: 'User ID',
-                    border: OutlineInputBorder(),
                     filled: true,
                     fillColor: Colors.white,
                   ),
@@ -341,12 +461,11 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                     return null;
                   },
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 5),
                 TextFormField(
                   controller: _clubEmailController,
                   decoration: InputDecoration(
                     labelText: 'Email',
-                    border: OutlineInputBorder(),
                     filled: true,
                     fillColor: Colors.white,
                   ),
@@ -366,13 +485,12 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                   },
                 ),
 
-                SizedBox(height: 10),
+                SizedBox(height: 5),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    border: OutlineInputBorder(),
                     filled: true,
                     fillColor: Colors.white,
                   ),
@@ -383,7 +501,7 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                     return null;
                   },
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 5),
 
                 // Confirm password field
                 TextFormField(
@@ -391,7 +509,6 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
-                    border: OutlineInputBorder(),
                     filled: true,
                     fillColor: Colors.white,
                   ),
@@ -405,10 +522,27 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
                     return null;
                   },
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 5),
                 ElevatedButton(
-                  onPressed: _saveToFirestore,
-                  child: Text('Register'),
+                  onPressed: _isLoading ? null : _saveToFirestore,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF0B3F33),
+                    minimumSize: Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ), // Disable button when loading
+                  child: _isLoading
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text('Register',
+                          style: TextStyle(fontSize: 16, color: Colors.white)),
                 ),
               ],
             ),
@@ -432,9 +566,9 @@ class _CreatorCreateAccountState extends State<CreatorCreateAccount> {
         return ['PICE', 'ARCHI', 'EE', 'CompENG', 'ECE'];
       }
     } else if (_selectedCollege == 'CBA') {
-      if (_selectedDepartment == 'Department of Business 1') {
+      if (_selectedDepartment == 'Business 1') {
         return ['Club E1', 'Club E2'];
-      } else if (_selectedDepartment == 'Department of Administration 1') {
+      } else if (_selectedDepartment == 'Administration 1') {
         return ['Club F1', 'Club F2'];
       }
     } else if (_selectedCollege == 'CED') {

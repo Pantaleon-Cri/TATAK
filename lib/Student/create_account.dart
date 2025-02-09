@@ -21,61 +21,64 @@ class _StudentCreateAccountState extends State<StudentCreateAccount> {
   String? _selectedCollege;
   String? _selectedDepartment;
   String? _selectedClub;
+  bool isLoading = false; // Added loading state
 
   void _register() async {
-    if (_formKey.currentState!.validate()) {
-      final schoolId = _schoolIdController.text.trim();
-      final firstName = _firstNameController.text.trim();
-      final lastName = _lastNameController.text.trim();
-      final email = _emailController.text.trim();
-      final password = _passwordController.text.trim();
+    if (!_formKey.currentState!.validate()) return;
 
-      try {
-        final doc = await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(schoolId)
-            .get();
+    setState(() {
+      isLoading = true; // Start loading
+    });
 
-        if (doc.exists) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'ID already exists.',
-                style: TextStyle(color: Colors.red),
-              ),
-              backgroundColor: Colors.white,
-            ),
-          );
-        } else {
-          await FirebaseFirestore.instance
-              .collection('Users')
-              .doc(schoolId)
-              .set({
-            'schoolId': schoolId,
-            'firstName': firstName,
-            'lastName': lastName,
-            'email': email,
-            'college': _selectedCollege,
-            'department': _selectedDepartment,
-            'club': _selectedClub,
-            'password': password, // Handle securely in production
-          });
+    final schoolId = _schoolIdController.text.trim();
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Registration successful!')));
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(schoolId)
+          .get();
 
-          _clearFields();
+      if (doc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('ID already exists.',
+                  style: TextStyle(color: Colors.red)),
+              backgroundColor: Colors.white),
+        );
+      } else {
+        await FirebaseFirestore.instance.collection('Users').doc(schoolId).set({
+          'schoolId': schoolId,
+          'firstName': firstName,
+          'lastName': lastName,
+          'email': email,
+          'college': _selectedCollege,
+          'department': _selectedDepartment,
+          'club': _selectedClub,
+          'password': password, // Handle securely in production
+        });
 
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => LoginPage()),
-            (Route<dynamic> route) => false,
-          );
-        }
-      } catch (e) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Registration failed: $e')));
+            .showSnackBar(SnackBar(content: Text('Registration successful!')));
+
+        _clearFields();
+
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => LoginPage()),
+          (Route<dynamic> route) => false,
+        );
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Registration failed: $e')));
     }
+
+    setState(() {
+      isLoading = false; // Stop loading
+    });
   }
 
   void _clearFields() {
@@ -96,186 +99,163 @@ class _StudentCreateAccountState extends State<StudentCreateAccount> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Student Registration')),
-      body: Container(
-        color: Color(0xFF167E55), // Set the background color here
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                TextFormField(
-                  controller: _schoolIdController,
-                  decoration: InputDecoration(
-                    labelText: 'School ID',
-                    border: OutlineInputBorder(),
-                    filled: true, // Enable filling
-                    fillColor: Colors.white,
+      body: SingleChildScrollView(
+        child: Container(
+          height: MediaQuery.of(context).size.height,
+          color: Color(0xFF167E55),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _schoolIdController,
+                    decoration: InputDecoration(
+                      labelText: 'School ID',
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please enter your Student ID'
+                        : null,
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your Student ID';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  value: _selectedCollege,
-                  hint: Text('Select College'),
-                  items: ['CAS', 'CED', 'CEAC', 'CBA'].map((college) {
-                    return DropdownMenuItem(
-                      value: college,
-                      child: Text(college),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCollege = value;
-                      _selectedDepartment = null;
-                      _selectedClub = null;
-                    });
-                  },
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    filled: true, // Enable filling
-                    fillColor: Colors.white,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 10, vertical: 15),
-                  ),
-                ),
-                SizedBox(height: 10),
-                RegistrationList(
-                  selectedCollege: _selectedCollege,
-                  selectedDepartment: _selectedDepartment,
-                  selectedClub: _selectedClub,
-                  onCollegeChanged: (college) {
-                    setState(() {
-                      _selectedCollege = college;
-                      _selectedDepartment = null;
-                      _selectedClub = null;
-                    });
-                  },
-                  onDepartmentChanged: (department) {
-                    setState(() {
-                      _selectedDepartment = department;
-                      _selectedClub = null;
-                    });
-                  },
-                  onClubChanged: (club) {
-                    setState(() {
-                      _selectedClub = club;
-                    });
-                  },
-                ),
-                SizedBox(height: 10),
-                TextFormField(
-                  controller: _firstNameController,
-                  decoration: InputDecoration(
-                    labelText: 'First Name',
-                    border: OutlineInputBorder(),
-                    filled: true, // Enable filling
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your first name';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 10),
-                TextFormField(
-                  controller: _lastNameController,
-                  decoration: InputDecoration(
-                    labelText: 'Last Name',
-                    border: OutlineInputBorder(),
-                    filled: true, // Enable filling
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your last name';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 10),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                    filled: true, // Enable filling
-                    fillColor: Colors.white,
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 10),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
-                    filled: true, // Enable filling
-                    fillColor: Colors.white,
-                  ),
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 10),
-                TextFormField(
-                  controller: _confirmPasswordController,
-                  decoration: InputDecoration(
-                    labelText: 'Confirm Password',
-                    border: OutlineInputBorder(),
-                    filled: true, // Enable filling
-                    fillColor: Colors.white,
-                  ),
-                  obscureText: true,
-                  validator: (value) {
-                    if (value != _passwordController.text.trim()) {
-                      return 'Passwords do not match';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _register,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF0B3F33), // Set button color
-                    minimumSize: Size(double.infinity,
-                        50), // Make the button longer and taller
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(8), // Optional: Rounded corners
+                  SizedBox(height: 5),
+                  DropdownButtonFormField<String>(
+                    value: _selectedCollege,
+                    hint: Text('Select College'),
+                    items: ['CAS', 'CED', 'CEAC', 'CBA'].map((college) {
+                      return DropdownMenuItem(
+                          value: college, child: Text(college));
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCollege = value;
+                        _selectedDepartment = null;
+                        _selectedClub = null;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 10, vertical: 15),
                     ),
                   ),
-                  child: Text(
-                    'SIGN UP',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
-                    // Adjust font size if needed
+                  SizedBox(height: 5),
+                  RegistrationList(
+                    selectedCollege: _selectedCollege,
+                    selectedDepartment: _selectedDepartment,
+                    selectedClub: _selectedClub,
+                    onCollegeChanged: (college) {
+                      setState(() {
+                        _selectedCollege = college;
+                        _selectedDepartment = null;
+                        _selectedClub = null;
+                      });
+                    },
+                    onDepartmentChanged: (department) {
+                      setState(() {
+                        _selectedDepartment = department;
+                        _selectedClub = null;
+                      });
+                    },
+                    onClubChanged: (club) {
+                      setState(() {
+                        _selectedClub = club;
+                      });
+                    },
                   ),
-                ),
-              ],
+                  SizedBox(height: 5),
+                  TextFormField(
+                    controller: _firstNameController,
+                    decoration: InputDecoration(
+                      labelText: 'First Name',
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please enter your first name'
+                        : null,
+                  ),
+                  SizedBox(height: 5),
+                  TextFormField(
+                    controller: _lastNameController,
+                    decoration: InputDecoration(
+                      labelText: 'Last Name',
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please enter your last name'
+                        : null,
+                  ),
+                  SizedBox(height: 5),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return 'Please enter your email';
+                      if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value))
+                        return 'Please enter a valid email';
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 5),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    obscureText: true,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Please enter your password'
+                        : null,
+                  ),
+                  SizedBox(height: 5),
+                  TextFormField(
+                    controller: _confirmPasswordController,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm Password',
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    obscureText: true,
+                    validator: (value) =>
+                        value != _passwordController.text.trim()
+                            ? 'Passwords do not match'
+                            : null,
+                  ),
+                  SizedBox(height: 5),
+                  ElevatedButton(
+                    onPressed: isLoading
+                        ? null
+                        : _register, // Disable button when loading
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF0B3F33),
+                      minimumSize: Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: isLoading
+                        ? CircularProgressIndicator(
+                            color: Colors.white) // Show loader
+                        : Text(
+                            'SIGN UP',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

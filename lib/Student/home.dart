@@ -19,17 +19,20 @@ class _StudentHomePageState extends State<StudentHomePage> {
   String department = 'Loading...';
   String college = 'Loading...';
   String club = 'Loading...';
+  bool isLoading = true; // Added loading state
 
   final List<String> offices = [
-    'SSG',
-    'COUNCIL',
-    'DEAN',
-    'DSA',
     'PEC',
-    'Business Office',
     'Clinic',
+    'GHAD',
     'Guidance',
+    'College Council',
+    'College Dean',
     'Library',
+    'SSG',
+    'DSA/NSTP',
+    'Business Office',
+    'Records Section'
   ];
 
   Map<String, String> requestStatus = {};
@@ -66,10 +69,13 @@ class _StudentHomePageState extends State<StudentHomePage> {
         print('Student document not found!');
       }
 
-      // Fetch request statuses
       await _loadRequestStatus();
     } catch (e) {
       print('Error loading student info: $e');
+    } finally {
+      setState(() {
+        isLoading = false; // Stop loading after fetching data
+      });
     }
   }
 
@@ -95,12 +101,94 @@ class _StudentHomePageState extends State<StudentHomePage> {
   }
 
   Future<void> _requestToOffice(String office) async {
+    List<String> requiredApprovals = [];
+
+    // Define the approval dependencies
+    switch (office) {
+      case 'Club Department':
+        if (requestStatus['Club'] != 'Approved') {
+          requiredApprovals.add('Club');
+        }
+        break;
+      case 'College Council':
+        if (requestStatus['Club Department'] != 'Approved') {
+          requiredApprovals.add('Club Department');
+        }
+        break;
+      case 'College Dean':
+        for (var required in [
+          'PEC',
+          'Clinic',
+          'GHAD',
+          'Guidance',
+          'College Council'
+        ]) {
+          if (requestStatus[required] != 'Approved') {
+            requiredApprovals.add(required);
+          }
+        }
+        break;
+      case 'SSG':
+        if (requestStatus['College Council'] != 'Approved') {
+          requiredApprovals.add('College Council');
+        }
+        break;
+      case 'DSA/NSTP':
+        if (requestStatus['SSG'] != 'Approved') {
+          requiredApprovals.add('SSG');
+        }
+        break;
+      case 'Records Section':
+        for (var required in [
+          'PEC',
+          'Clinic',
+          'GHAD',
+          'Guidance',
+          'College Council',
+          'College Dean',
+          'Library',
+          'SSG',
+          'DSA/NSTP',
+          'Business Office'
+        ]) {
+          if (requestStatus[required] != 'Approved') {
+            requiredApprovals.add(required);
+          }
+        }
+        break;
+    }
+    void _showRequirementDialog(String office, List<String> missingApprovals) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Requirements Not Met'),
+            content: Text(
+              'To request clearance from $office, you first need approval from:\n\n'
+              '${missingApprovals.join(', ')}',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    // Show dialog if there are missing approvals
+    if (requiredApprovals.isNotEmpty) {
+      _showRequirementDialog(office, requiredApprovals);
+      return;
+    }
+
     setState(() {
       requestStatus[office] = 'Pending';
     });
 
     try {
-      // Store the request in Firestore with the status 'Pending'
       await FirebaseFirestore.instance.collection('Requests').add({
         'studentId': widget.schoolId,
         'office': office,
@@ -109,9 +197,9 @@ class _StudentHomePageState extends State<StudentHomePage> {
         'status': 'Pending',
         'firstName': firstName,
         'lastName': lastName,
+        'club dept': club,
       });
 
-      // Fetch the updated request status from Firestore
       final requestQuery = await FirebaseFirestore.instance
           .collection('Requests')
           .where('studentId', isEqualTo: widget.schoolId)
@@ -135,42 +223,49 @@ class _StudentHomePageState extends State<StudentHomePage> {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       color: Colors.white.withOpacity(0.1),
-      child: Container(
-        decoration: BoxDecoration(),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            vertical: 12,
+            horizontal: 10), // Adjust padding to reduce chubbiness
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
                 displayName,
                 style: const TextStyle(
-                  fontSize: 18,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
+                overflow:
+                    TextOverflow.ellipsis, // Prevents text from overflowing
               ),
-              ElevatedButton(
-                onPressed: (status == 'Pending' || status == 'Approved')
-                    ? null
-                    : () => _requestToOffice(officeKey),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: status == 'Approved'
-                      ? Colors.green
-                      : (status == 'Pending' ? Colors.orange : Colors.blue),
-                  disabledBackgroundColor: status == 'Approved'
-                      ? Colors.green
-                      : const Color.fromARGB(255, 107, 106,
-                          105), // Ensures correct color when disabled
-                ),
-                child: Text(
-                  status,
-                  style: const TextStyle(
-                      color: Colors
-                          .white), // Ensures text is readable on all colors
+            ),
+            ElevatedButton(
+              onPressed: (status == 'Pending' || status == 'Approved')
+                  ? null // Disable button when Pending or Approved
+                  : () => _requestToOffice(officeKey),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: status == 'Approved'
+                    ? Colors.green
+                    : (status == 'Pending' ? Colors.orange : Colors.blue),
+              ).copyWith(
+                backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                  (states) {
+                    if (states.contains(MaterialState.disabled)) {
+                      return status == 'Approved'
+                          ? Colors.green // Ensures Approved stays green
+                          : Colors.grey; // Keeps Pending as grey
+                    }
+                    return status == 'Approved'
+                        ? Colors.green
+                        : (status == 'Pending' ? Colors.orange : Colors.blue);
+                  },
                 ),
               ),
-            ],
-          ),
+              child: Text(status, style: const TextStyle(color: Colors.white)),
+            ),
+          ],
         ),
       ),
     );
@@ -179,93 +274,82 @@ class _StudentHomePageState extends State<StudentHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          backgroundColor: const Color.fromARGB(255, 6, 109, 61),
-          leading: Builder(
-            builder: (context) {
-              return IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                },
-              );
-            },
-          ),
-          title: Text('Student Dashboard'), // Replaced the logo with text
-          centerTitle: true,
+      appBar: AppBar(
+        backgroundColor: const Color.fromARGB(255, 6, 109, 61),
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          },
         ),
-        drawer: Drawer(
-          child: Column(
-            children: [
-              UserAccountsDrawerHeader(
-                currentAccountPicture: CircleAvatar(
-                  backgroundImage: profileImageURL != null
-                      ? NetworkImage(profileImageURL!)
-                      : const AssetImage('assets/generic_avatar.png')
-                          as ImageProvider,
-                ),
-                accountName: Text('$firstName $lastName'),
-                accountEmail: Text(email),
-                decoration: const BoxDecoration(
-                  color: Color.fromARGB(255, 6, 109, 61),
-                ),
+        title: const Text('Student Dashboard'),
+        centerTitle: true,
+      ),
+      drawer: Drawer(
+        child: Column(
+          children: [
+            UserAccountsDrawerHeader(
+              accountName: Text('$firstName $lastName'),
+              accountEmail: Text(email),
+              decoration: const BoxDecoration(
+                color: Color.fromARGB(255, 6, 109, 61),
               ),
-              ListTile(
-                leading: const Icon(Icons.person),
-                title: const Text('Profile'),
-                onTap: () {
-                  Navigator.pop(context);
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return StudentProfileDialog(
-                        firstName: firstName,
-                        lastName: lastName,
-                        email: email,
-                        department: department,
-                        schoolId: widget.schoolId,
-                        college: college,
-                        club: club,
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-        body: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/tatak_logo.png'), // Background logo
-              fit: BoxFit.contain,
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(1.0),
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width *
-                      0.9, // You can adjust the width of the search bar
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: offices.length + 1, // +1 for Club
-                  itemBuilder: (context, index) {
-                    if (index < offices.length) {
-                      final office = offices[index];
-                      return _buildOfficeCard(office, office);
-                    } else {
-                      return _buildOfficeCard('Club', 'Club - $department');
-                    }
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Profile'),
+              onTap: () {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return StudentProfileDialog(
+                      firstName: firstName,
+                      lastName: lastName,
+                      email: email,
+                      department: department,
+                      schoolId: widget.schoolId,
+                      college: college,
+                      club: club,
+                    );
                   },
-                ),
-              ),
-            ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/tatak_logo.png'), // Background logo
+            fit: BoxFit.contain,
           ),
-        ));
+        ),
+        child: isLoading
+            ? const Center(
+                child: CircularProgressIndicator()) // Show loading spinner
+            : ListView.builder(
+                itemCount: offices.length + 2,
+                itemBuilder: (context, index) {
+                  if (index < 4) {
+                    return _buildOfficeCard(offices[index], offices[index]);
+                  } else if (index == 4) {
+                    return _buildOfficeCard('Club', 'Club - $club');
+                  } else if (index == 5) {
+                    return _buildOfficeCard(
+                        'Club Department', 'Club Dept - $department');
+                  } else {
+                    return _buildOfficeCard(
+                        offices[index - 2], offices[index - 2]);
+                  }
+                },
+              ),
+      ),
+    );
   }
 }

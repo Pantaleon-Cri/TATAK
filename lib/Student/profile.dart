@@ -30,9 +30,6 @@ class StudentProfileDialog extends StatefulWidget {
 }
 
 class _StudentProfileDialogState extends State<StudentProfileDialog> {
-  File? _profileImage;
-  String? _profileImageURL;
-
   @override
   void initState() {
     super.initState();
@@ -40,17 +37,9 @@ class _StudentProfileDialogState extends State<StudentProfileDialog> {
       print('Error: School ID is empty');
       return; // Exit early if schoolId is empty
     }
-    _loadProfileImage(widget.schoolId);
   }
 
   // Loads the profile image from a URL if it exists
-  void _loadProfileImage(String schoolId) {
-    loadProfileImage(schoolId, (url) {
-      setState(() {
-        _profileImageURL = url;
-      });
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +57,7 @@ class _StudentProfileDialogState extends State<StudentProfileDialog> {
               ),
               child: IntrinsicHeight(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -78,36 +67,9 @@ class _StudentProfileDialogState extends State<StudentProfileDialog> {
                             fontSize: 22, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 20),
-                      Center(
-                        child: GestureDetector(
-                          onTap: () {
-                            _showImageSourceSelection(context);
-                          },
-                          child: CircleAvatar(
-                            radius: constraints.maxWidth * 0.15,
-                            backgroundImage: _profileImage != null
-                                ? FileImage(_profileImage!)
-                                : _profileImageURL != null
-                                    ? NetworkImage(_profileImageURL!)
-                                    : const AssetImage(
-                                            'assets/generic_avatar.png')
-                                        as ImageProvider,
-                            backgroundColor: Colors.grey[400],
-                            child: _profileImage == null &&
-                                    _profileImageURL == null
-                                ? const Icon(
-                                    Icons.add_a_photo,
-                                    size: 40,
-                                    color: Colors.white70,
-                                  )
-                                : null,
-                          ),
-                        ),
-                      ),
                       const SizedBox(height: 20),
                       _buildProfileDetail(
                           'Name:', '${widget.firstName} ${widget.lastName}'),
-                      _buildProfileDetail('Email:', widget.email),
                       _buildProfileDetail('College:', widget.college),
                       _buildProfileDetail('Department:', widget.department),
                       _buildProfileDetail('Club:', widget.club),
@@ -150,49 +112,6 @@ class _StudentProfileDialogState extends State<StudentProfileDialog> {
     );
   }
 
-  // Function to show image source options (Gallery/Camera)
-  void _showImageSourceSelection(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Wrap(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.photo_library),
-            title: const Text('Gallery'),
-            onTap: () {
-              Navigator.pop(context);
-              pickImage(ImageSource.gallery, (image) {
-                setState(() {
-                  _profileImage = image;
-                });
-              }, (url) {
-                setState(() {
-                  _profileImageURL = url;
-                });
-              }, widget.schoolId);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.camera_alt),
-            title: const Text('Camera'),
-            onTap: () {
-              Navigator.pop(context);
-              pickImage(ImageSource.camera, (image) {
-                setState(() {
-                  _profileImage = image;
-                });
-              }, (url) {
-                setState(() {
-                  _profileImageURL = url;
-                });
-              }, widget.schoolId);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   // Helper method to create profile detail with bold labels inside a rectangle
   Widget _buildProfileDetail(String label, String value) {
     return Container(
@@ -215,7 +134,7 @@ class _StudentProfileDialogState extends State<StudentProfileDialog> {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 14),
             ),
           ),
         ],

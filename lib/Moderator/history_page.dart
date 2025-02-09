@@ -84,7 +84,7 @@ class HistoryPage extends StatelessWidget {
                     onPressed: () async {
                       await _setStatusToPending(requestId); // Update status
                     },
-                    child: Text('Approve'),
+                    child: Text('Back to Pending'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor:
